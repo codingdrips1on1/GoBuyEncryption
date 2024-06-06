@@ -1,6 +1,8 @@
 {
     "name": "gobuy/gobuy_php_encryption",
     "type": "false",
+    "description": "",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "GoBuy\\Encryption\\": "src/"
