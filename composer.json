@@ -1,5 +1,5 @@
 {
-    "name": "gobuy/gobuy_encryption",
+    "name": "gobuy/gobuy_php_encryption",
     "type": "false",
     "autoload": {
         "psr-4": {
