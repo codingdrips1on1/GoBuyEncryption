@@ -1,7 +1,15 @@
 {
+    "name": "vendor/gobuy_encryption",
+    "type": "false",
     "autoload": {
         "psr-4": {
             "GoBuy\\Encryption\\": "src/"
         }
-    }
+    },
+    "authors": [
+        {
+            "name": "Tech Team",
+            "email": "dev@codingdrips.eu"
+        }
+    ]
 }
