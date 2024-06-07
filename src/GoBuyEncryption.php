@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  *
  * Sign files using CMS (Cryptographic Message Syntax).
  */
-class CMSSigner
+class GoBuyEncryption
 {
     /**
      * @var string Path to the input file.
@@ -48,6 +48,9 @@ class CMSSigner
      */
     public function __construct()
     {
+
+        if ( !is_dir( "./log" ) )
+            mkdir( "./log" );
         // Set up the logger
         $this->log = new Logger('cms_signing');
         $this->log->pushHandler(new StreamHandler('./log/cms_signing.log', Logger::INFO));
@@ -64,7 +67,7 @@ class CMSSigner
      *
      * @throws Exception If signing fails or private key is invalid.
      */
-    public function signFile()
+    public function signFile(): bool
     {
         // Read the private key and protect it with a passphrase if necessary
         $privateKey = openssl_pkey_get_private(file_get_contents($this->privateKeyPath), 'cool');
@@ -94,13 +97,14 @@ class CMSSigner
         }
 
         $this->log->info('The file has been successfully signed.');
+
+        return true;
     }
 }
 
 // Usage example:
 try {
-    $cmsSigner = new CMSSigner();
-    $cmsSigner->signFile();
+    $gobuy = new GoBuyEncryption();
 } catch (Exception $e) {
     echo 'Error: ' . $e->getMessage();
 }
