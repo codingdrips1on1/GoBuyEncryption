@@ -32,6 +32,11 @@ To use the CMS Signer, you need to include the Composer autoload file and instan
 
 require 'vendor/autoload.php'; 
 
+```
+
+## Class Definitions
+```php
+
 /**
  *  The input and output files could be ".cms". Not just ".txt"
  *  Do not use "file://" just "./folder/file.txt" for example.
