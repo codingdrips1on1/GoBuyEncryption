@@ -21,7 +21,7 @@ The CMS Signer Library is a PHP utility for signing files using Cryptographic Me
 Use Composer to install the library:
 
 ```bash
-composer require yourvendor/cms-signer
+composer require gobuy/gobuy_php_encryption
 ```
 
 ## Usage
