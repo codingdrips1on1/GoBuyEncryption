@@ -53,9 +53,9 @@ $gobuy->setHeader(["To" => "recipient@example.com", "Subject" => "Signed Data"])
 $gobuy->setFlag(OPENSSL_CMS_DETACHED); // Default is OPENSSL_CMS_DETACHED | OPENSSL_CMS_BINARY
 $gobuy->setEncoding(OPENSSL_ENCODING_SMIME); // Default is OPENSSL_ENCODING_DER
 $gobuy->setUntrustedCertificatesFilename('path/to/dummy_untrusted_certs.pem'); // This can just be null or omitted.
-$gobuy->setLog(new Logger('dummy_logger')); // Choose your prefered logger. Skip to use our default standard loger. A log folder will be created for you in your current dir. Check the log file there for info.
+$gobuy->setLog(new Logger('dummy_logger')); // Choose your prefered logger. Skip to use our default standard logger. A log folder will be created for you in your current dir. Check the log file there for info.
 
-// Getters. Output these to check default values.
+// Getters. Output these to also check default values or simple scroll down.
 $inputFilename = $gobuy->getInputFilename();
 $outputFilename = $gobuy->getOutputFilename();
 $certificatePath = $gobuy->getCertificatePath();
@@ -79,15 +79,6 @@ $gobuy->signFile(); // Signs the MIME message in the file with a cert and key an
 
 ```
 
-## Configuration
-
-Before using the CMS Signer, configure the following properties:
-
-- `inputFilename`: Path to the input file to be signed. the content of this file is read and signed.
-- `outputFilename`: Path where the signed data will be stored.
-- `certificatePath`: Path to the certificate (certificate.pem) file.
-- `privateKeyPath`: Path to the private key (private_key.pem) file.
-- `extraCertsPath`: Path to additional certificates (optional).
 
 ## All Class Properties 
 
