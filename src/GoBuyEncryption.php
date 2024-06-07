@@ -39,6 +39,31 @@ class GoBuyEncryption
     private $extraCertsPath = 'path/to/extra_certs.pem';
 
     /**
+     * @var string Specifies the password for the key.
+     */
+    private $privateKeyPassword = '12345';
+
+   /**
+     * @var array An associative array representing the headers for the CMS operation.
+     */
+    private $header = [];
+
+    /**
+     * @var int A bitmask of flags for the CMS signing operation.
+     */
+    private $flag = OPENSSL_CMS_DETACHED | OPENSSL_CMS_BINARY;
+
+    /**
+     * @var int The encoding type for the CMS signing operation.
+     */
+    private $encoding = OPENSSL_ENCODING_DER;
+
+    /**
+     * @var string|null The filename of additional untrusted certificates for the CMS operation.
+     */
+    private $untrusted_certificates_filename = null;
+
+    /**
      * @var Logger Monolog logger for logging messages.
      */
     private $log;
@@ -62,6 +87,140 @@ class GoBuyEncryption
         }
     }
 
+
+      // Getter for inputFilename
+      public function getInputFilename()
+      {
+          return $this->inputFilename;
+      }
+  
+      // Setter for inputFilename
+      public function setInputFilename($inputFilename)
+      {
+          $this->inputFilename = $inputFilename;
+      }
+  
+      // Getter for outputFilename
+      public function getOutputFilename()
+      {
+          return $this->outputFilename;
+      }
+  
+      // Setter for outputFilename
+      public function setOutputFilename($outputFilename)
+      {
+          $this->outputFilename = $outputFilename;
+      }
+  
+      // Getter for certificatePath
+      public function getCertificatePath()
+      {
+          return $this->certificatePath;
+      }
+  
+      // Setter for certificatePath
+      public function setCertificatePath($certificatePath)
+      {
+          $this->certificatePath = $certificatePath;
+      }
+  
+      // Getter for privateKeyPath
+      public function getPrivateKeyPath()
+      {
+          return $this->privateKeyPath;
+      }
+  
+      // Setter for privateKeyPath
+      public function setPrivateKeyPath($privateKeyPath)
+      {
+          $this->privateKeyPath = $privateKeyPath;
+      }
+  
+      // Getter for extraCertsPath
+      public function getExtraCertsPath()
+      {
+          return $this->extraCertsPath;
+      }
+  
+      // Setter for extraCertsPath
+      public function setExtraCertsPath($extraCertsPath)
+      {
+          $this->extraCertsPath = $extraCertsPath;
+      }
+  
+      // Getter for privateKeyPassword
+      public function getPrivateKeyPassword()
+      {
+          return $this->privateKeyPassword;
+      }
+  
+      // Setter for privateKeyPassword
+      public function setPrivateKeyPassword($privateKeyPassword)
+      {
+          $this->privateKeyPassword = $privateKeyPassword;
+      }
+  
+      // Getter for header
+      public function getHeader()
+      {
+          return $this->header;
+      }
+  
+      // Setter for header
+      public function setHeader(array $header)
+      {
+          $this->header = $header;
+      }
+  
+      // Getter for flag
+      public function getFlag()
+      {
+          return $this->flag;
+      }
+  
+      // Setter for flag
+      public function setFlag($flag)
+      {
+          $this->flag = $flag;
+      }
+  
+      // Getter for encoding
+      public function getEncoding()
+      {
+          return $this->encoding;
+      }
+
+       // Setter for encoding
+    public function setEncoding($encoding)
+    {
+        $this->encoding = $encoding;
+    }
+
+    // Getter for untrusted_certificates_filename
+    public function getUntrustedCertificatesFilename()
+    {
+        return $this->untrusted_certificates_filename;
+    }
+
+    // Setter for untrusted_certificates_filename
+    public function setUntrustedCertificatesFilename($untrusted_certificates_filename)
+    {
+        $this->untrusted_certificates_filename = $untrusted_certificates_filename;
+    }
+
+    
+    // Getter for log
+    public function getLog()
+    {
+        return $this->log;
+    }
+
+    // Setter for log
+    public function setLog($log)
+    {
+        $this->log = $log;
+    }
+
     /**
      * Sign the file using CMS.
      *
@@ -70,7 +229,7 @@ class GoBuyEncryption
     public function signFile(): bool
     {
         // Read the private key and protect it with a passphrase if necessary
-        $privateKey = openssl_pkey_get_private(file_get_contents($this->privateKeyPath), 'cool');
+        $privateKey = openssl_pkey_get_private(file_get_contents($this->privateKeyPath), $this->privateKeyPassword );
 
         // Check if the private key is valid
         if (!$privateKey) {
@@ -85,9 +244,9 @@ class GoBuyEncryption
             "file://{$this->certificatePath}",
             $privateKey,
             [],
-            OPENSSL_CMS_DETACHED | OPENSSL_CMS_BINARY,
-            OPENSSL_ENCODING_DER,
-            null
+            $this->flag, 
+            $this->encoding,
+            $this->untrusted_certificates_filename
         );
 
         // Check if the file was signed successfully
@@ -107,4 +266,5 @@ try {
     $gobuy = new GoBuyEncryption();
 } catch (Exception $e) {
     echo 'Error: ' . $e->getMessage();
+    $gobuy->getLog()->error('Error: ' . $e->getMessage());
 }
