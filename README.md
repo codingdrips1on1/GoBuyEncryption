@@ -6,7 +6,7 @@ The CMS Signer Library is a PHP utility for signing files using Cryptographic Me
 
 ## Features
 
-- Easy-to-use CMS signing functionality
+- Easy-to-use CMS/PKCS7 signing, encrypting, decrypting and signature-verifying functionality
 - Built-in logging with Monolog
 - Exception handling for robust error management
 
@@ -26,7 +26,7 @@ composer require gobuy/gobuy_php_encryption
 
 ## Usage
 
-To use the CMS Signer, you need to include the Composer autoload file and instantiate the `CMSSigner` class:
+To use the CMS Signer, you need to include the Composer autoload file and start invoking class members with the instance `$gobuy`  class name is `GoBuyEncryption` incase you prefer a different class object name. The class constructor takes no argument.
 
 ```php
 
@@ -159,7 +159,7 @@ Here's an example of how to invoke these methods:
     
 ```
 
-When using these methods, you don't need to worry about file paths or handling certificate files directly. The class takes care of generating the necessary credentials and using them in subsequent cryptographic operations. This makes the process more streamlined and user-friendly, especially for those who may not be familiar with the details of certificate and key management.
+When using these methods, you don't need to worry about file paths or handling certificate files directly. The method takes care of generating the necessary credentials and using them in subsequent cryptographic operations. This makes the process more streamlined and user-friendly, especially for those who may not be familiar with the details of certificate and key management.
 
 Here are the definitions for the `generateSenderCredentials` and `generateRecipientCredentials` methods with comments explaining each parameter:
 
@@ -236,9 +236,9 @@ These methods are designed to be flexible, allowing you to specify different con
 
 ## All Class Properties 
 
-Here's a markdown explanation of the fields in the `GoBuyEncryption` class:
+Here's an explanation of the fields in the `GoBuyEncryption` class:
 
-```markdown
+
 # GoBuyEncryption Class Fields
 
 ## Private Fields
@@ -282,7 +282,7 @@ Here's a markdown explanation of the fields in the `GoBuyEncryption` class:
 
 - `decryptedOutput`: Publicly accessible property for **decrypted output**.
 - `pkcs7VerifiedOutput`: Output for **PKCS7 verified data**.
-```
+
 
 Each field is described with its purpose and the type of data it holds. This documentation provides clarity on the role of each field within the `GoBuyEncryption` class, making it easier for developers to understand and work with the class.## Exception Handling
 
