@@ -35,6 +35,20 @@ require 'vendor/autoload.php';
 ```
 
 ## Usage
+
+Check if OpenSSL module is loaded.
+
+```php
+
+// Load the OpenSSL module
+if (!extension_loaded('openssl')) {
+    die('OpenSSL extension is not loaded.');
+}
+
+```
+
+#### To sign a file
+You must set the necessary paths to the files you wish to work with before signing, encrypting, decrypting, and verifying.
 ```php
 
 /**
@@ -53,47 +67,162 @@ $gobuy->setCMSOutputFilename("./gobuy_cypher/signed_data.cms");
 $gobuy->setSenderCertPath("../../alice/certificate.pem");
 
 // Set the path to the sender's private key
-$gobuy->setSenderPrivateKey("../../alice/private_key.pem");
+$gobuy->setSenderPrivateKey("../../alice/private_key.pem", "12345");
 
-// Set the password for the sender's private key
+// Or
+// Set the password for the sender's private key, then call "setSenderPrivateKey" with only first argument.
 $gobuy->setPrivateKeyPassword("12345");
 
 // Optional: Set email headers for the S/MIME message
+// Below are optional
+$gobuy->setCMSEncoding( OPENSSL_ENCODING_SMIME ); 
+$gobuy->setCMSCipherAlgo( OPENSSL_CIPHER_AES_128_CBC );
+
 $gobuy->setHeader([
     "From" => "sender@example.com",
     "To" => "recipient@example.com",
     "Subject" => "Signed Data"
 ]);
 
+
+```
+Optional: in case you wish to set up a chain of trust. That is, to generate an intermediate certificate for the `$untrusted_certificates_filename`. This is typically done when you want to provide additional certificates that may be needed to complete the chain of trust during the verification process but are not inherently trusted by the system.
+```php
+
+// 
+list($intermediateCert, $intermediatCertPath, $intermediatePrivateKey ) = $gobuy->generateIntermediateCert( "../../alice_cred/private_key.pem" );
+
+// Now the end entity's certificate can be created. End entity is also the sender. The sender needs to submit a Certificate Signing Request (CSR) for a certificate to be issued to them.
+$days = 365; // How long the certificate will be valid. You can increase this further
+$serial = rand(); // Just any random number, for example.
+list( $endEntityCert ) = $gobuy->signEndEntityCert( "../../alice_cred/csr.pem", 
+                                $intermediatCertPath, $intermediatePrivateKey, 
+                                  $days, $serial );
+
+// set $untrusted_certificates_filename. This is needed to verify the sender's 
+$gobuy->setUntrustedCertificatesFilename( $intermediateCertPath );
+
+```
+Where `$intermediateCert` is the certificate content from file, and `$intermediateCertPath` is the path to the certificate content. `generateCSR` takes the path to the sender's private key. `setUntrustedCertificatesFilename` sets `$untrusted_certificates_filename`. Use carefully.
+
+The above chain of trust can be skipped, where the user goes straight to the signing stage as shown below:
+
+```php
+
 // Sign the data using CMS. You should see output in the specified path.
-$gobuy->cmsSign();
+$gobuy->setUntrustedCertificatesFilename( $intermediatCertPath );
+$gobuy->setSenderPrivateKey( "../../alice_cred/private_key.pem", "12345"); // Password protected
+$gobuy->cmsSign( $endEntityCert );
 
-// Set the output filename where the CMS. encrypted data will be saved
-$gobuy->setCMSEncryptedOutput("./gobuy_cypher/encrypted_data.cms");
+```
 
-// Encrypt the signed data using CMS
-$gobuy->cmsEncrypt("./gobuy_cypher/signed_data.cms");
+#### To encrypt a file
 
-// Set the output filename where the decrypted data will be saved
-$gobuy->setDecryptionOutput("./gobuy_cypher/decrypted_data.cms");
+```php
 
-// Decrypt the CMS encrypted data
-$gobuy->cmsDecrypt("./gobuy_cypher/encrypted_data.cms");
+// Here you must have invoke the setters like above
+if ( $gobuy->cmsSign( $endEntityCert ) ) {
+    // This scope means a digital signature was established successfully.
 
-// Verify the CMS decrypted data
-$gobuy->cmsVerify("./gobuy_cypher/decrypted_data.cms");
+    // Preparing for encryption
+    // Set the output filename where the CMS. encrypted data will be saved
+    $gobuy->setCMSEncryptedOutput( "./gobuy_cypher/encrypted_data.cms" );
+    // Set the path to recipient's certificate.
+    $gobuy->setRecipientCertPath( "../../bob_cred/certificate.pem" );
+    // Set the path to the recipient's private key.
+    $gobuy->setRecipientPrivateKey( "../../bob_cred/private_key.pem", "12345" ); // Password-protected
+    
+    // Encrypt the signed data using CMS. 
+    $gobuy->cmsEncrypt("path/to/signed_data.cms");
+
+} else {
+    throw new \Exception( "Signing failed: " . openssl_error_string() );
+}
+
+
+```
+It is recommended to compress the file before it takes flight. This will reduce the file size and prevent any latency due to file being too large. If you believe you are working with a small file, you may want to skip this stage of encryption. Below shows how we can effortlessly compress your file after encryption.
+```php
+// Begin the compression process and create a new ZIP file named "comp.zip".
+$gobuy->compressData("comp.zip")
+    ->thenAddFileFromString("index.php", "<?php echo 'Hello, world!' ") // Add a file from a string with the name "index.php" containing a simple PHP echo statement.
+    ->thenAttach("comp.zip", "pic/dog.jpg")// Attach an image file "dog.jpg" from the "pic" directory to the ZIP archive.
+    ->thenAttach("comp.zip", "pic/car.png") // Attach another image file "car.png" from the "pic" directory to the ZIP archive.
+    ->thenAttach("comp.zip", "docs/doc.pdf") // Attach a PDF document "doc.pdf" from the "docs" directory to the ZIP archive.
+    ->thenAfterCloseZip();  // Finalize the ZIP archive and close it.
+```
+
+You may now proceed as follows:
+```php
+
+// Begin the compression process and create a new ZIP file named "comp.zip".
+$gobuy->compressData("encryption.zip")
+    // Attach an image file "dog.jpg" from the "pic" directory to the ZIP archive.
+    ->thenAttach("encryption.zip", "encrypted/encrypted_data.cms")
+    // Finalize the ZIP archive and close it.
+    ->thenAfterCloseZip();
+
+
+```
+
+```php
+// This is the reciever's end, who will now decrypt the file.
+// Continuation from above. Ensure to have called all relevant setters here.
+if (  $gobuy->cmsEncrypt("path/to/signed_data.cms") ) {
+
+    // Set the output filename where the decrypted data will be saved
+    $gobuy->setDecryptionOutput("./gobuy_cypher/decrypted_data.cms");
+
+    // Decrypt the CMS encrypted data
+    $gobuy->cmsDecrypt("./gobuy_cypher/encrypted_data.cms");
+
+} else {
+    throw new Exception ( "Something went wrong" );
+}
+
+```
+
+```php
+
+// Verify the CMS decrypted data. 
+if ($gobuy->cmsVerify ( "./gobuy_cypher/decrypted_data.cms", 
+                                "./gobuy_cypher/cms_content_data.pem", 
+                                "./gobuy_cipher/cms_signature_data.pem" ))
+                        {
+                            $gobuy->output( "CMS VERIfied", "Verified!!" );
+                        } else {
+                            $gobuy->output( "CMS Not VERIfied ". openssl_error_string(), "Not Verified!!" );
+                            $gobuy->showAnyError();
+                        }
+
+
+// public function cmsVerify( string $decryptedData, string $output,
+//                                 string|null $sigfile = null,
+//                                 array $caInfo = [],
+//                                 string|null $untrustedCertificatesFilename = null,
+//                                 string|null $content = null,
+//                                 string|null $pk7 = null,
+//                                 int $encoding = OPENSSL_ENCODING_SMIME ): bool | int {
+
+
+```
+The second argument of `cmsVerify` shows the original content (the human-readable message) before signature was signed, that is after the signature is detached. The third argument is a file that holds the detached signature.
+
+## Using PKCS7 System
+
+```php
 
 // Set the input filename for the data to be signed using PKCS7
-$gobuy->setInputFilename("../../CMS/data_5.txt");
+$gobuy->setInputFilename("path/to/data.txt"); // Holds just plain text.
 
 // Set the output filename where the PKCS7 signed data will be saved
-$gobuy->setPKCS7SignedOutputFilename("./gobuy_cypher/signed_data.cms");
+$gobuy->setPKCS7SignedOutputFilename("./path/to/signed_data.cms");
 
 // Set the path to the sender's certificate for PKCS7 signing
-$gobuy->setSenderCertPath("../../alice_cred_aes/certificate.pem");
+$gobuy->setSenderCertPath("path/to/sender/certificate.pem");
 
 // Set the path to the sender's private key for PKCS7 signing
-$gobuy->setSenderPrivateKeyPath("../../alice_cred_aes/private_key.pem");
+$gobuy->setSenderPrivateKeyPath("path/to/sender/private_key.pem");
 
 // Optional: Set email headers for the S/MIME message for PKCS7
 $gobuy->setHeader([
@@ -106,13 +235,13 @@ $gobuy->setHeader([
 // Sign the data using PKCS7
 if ($gobuy->pkcs7Sign()) {
     // Set the output filename where the PKCS7 encrypted data will be saved
-    $gobuy->setPKCS7EncryptedOutputFilename("./gobuy_cypher/pkcs7_encrypted_data.cms");
+    $gobuy->setPKCS7EncryptedOutputFilename("./path/to/pkcs7_encrypted_data.cms");
 
     // Set the path to the recipient's certificate for PKCS7 encryption
-    $gobuy->setRecipientCertPath("../../bob_cred_aes/certificate.pem");
+    $gobuy->setRecipientCertPath("path/to/recipient/certificate.pem");
 
     // Generate recipient credentials for PKCS7 encryption
-    $gobuy->generateRecipientCredentials();
+    // $gobuy->generateRecipientCredentials();
 
     // Encrypt the signed data using PKCS7
     if ($gobuy->pkcs7Encrypt()) {
@@ -121,27 +250,27 @@ if ($gobuy->pkcs7Sign()) {
 }
 
 // Set the output filename where the PKCS7 decrypted data will be saved
-$gobuy->setPKCS7DecryptedOutputFilename("./gobuy_cypher/pkcs7_decrypted_data.cms");
+$gobuy->setPKCS7DecryptedOutputFilename("./path/to/pkcs7_decrypted_data.cms");
 
 // Set the path to the recipient's certificate for PKCS7 decryption
-$gobuy->setRecipientCertPath("../../bob_cred_aes/certificate.pem");
+$gobuy->setRecipientCertPath("path/to/recipient/certificate.pem");
 
 // Set the path to the recipient's private key for PKCS7 decryption
-$gobuy->setRecipientPrivateKey("../../bob_cred_aes/private_key.pem");
+$gobuy->setRecipientPrivateKey("path/to/recipient/private_key.pem");
 
 // Decrypt the PKCS7 encrypted data
 if ($gobuy->pkcs7Decrypt($gobuy->getPKCS7EncryptedOutputFilename())) {
-    // Set the output filename where the PKCS7 verified data will be saved
-    $gobuy->setPKCS7VerifiedOutput('gobuy_cypher/data_pkcs7_verified.txt');
+    // Set the output filename where the PKCS7 original message will be saved
+    $gobuy->setPKCS7RawDataOutput( "./path/to/data_pkcs7_content." );
 
-    // Set the path to the sender's certificate for PKCS7 verification
-    $gobuy->setSenderCertPath("../../alice_cred_aes/certificate.pem");
+    // Set the path where the detached signature will be saved.
+    $gobuy->setPKCS7SignatureOutput( "./path/to/data_pkcs7_signature." );
 
     // Verify the PKCS7 decrypted data
     $gobuy->pkcs7Verify($gobuy->getPKCS7DecryptedOutputFilename());
 }
 
-
+```
 ```
 ## Alternatively
 In the context of the class you're working with, the methods `generateRecipientCredentials()` and `generateSenderCredentials()` can be designed to simplify the process of generating credentials. When invoked, these methods can internally create a certificate and a private key for the recipient and sender, respectively. This feature is particularly useful if you prefer not to manually create and manage certificate files and private key files on the filesystem.
@@ -151,12 +280,31 @@ Here's an example of how to invoke these methods:
 ```php
       ...
 
-    $gobuy->generateSenderCredentials( ... )
+    list( $recipientRawCert, $recipientPrivateKey ) = $gobuy->generateSenderCredentials( $config, $dn, $expiresIn  )
     
-    $gobuy->generateRecipientCredentials( ... )
+    list( $recipientRawCert, $recipientPrivateKey ) = $gobuy->generateRecipientCredentials( $config, $dn, $expiresIn  )
        
-       ...
     
+```
+```php 
+ //Where 
+        $config = array(
+            "digest_alg" => "sha512", // Digest algorithm for the certificate signature
+            "private_key_bits" => 4096, // Number of bits for the private key
+            "private_key_type" => OPENSSL_KEYTYPE_RSA, // Type of private key to create
+        )
+
+        $dn = array(
+            "countryName" => "AU", // Country name
+            "stateOrProvinceName" => "...", // State or province name
+            "localityName" => "...", // Locality name
+            "organizationName" => "...", // Organization name
+            "organizationalUnitName" => "...", // Organizational unit name
+            "commonName" => "www.", // Common name, usually the domain name
+            "emailAddress" => "..." // Email address
+        ),
+        $expiresIn = 365
+
 ```
 
 When using these methods, you don't need to worry about file paths or handling certificate files directly. The method takes care of generating the necessary credentials and using them in subsequent cryptographic operations. This makes the process more streamlined and user-friendly, especially for those who may not be familiar with the details of certificate and key management.
@@ -284,7 +432,9 @@ Here's an explanation of the fields in the `GoBuyEncryption` class:
 - `pkcs7VerifiedOutput`: Output for **PKCS7 verified data**.
 
 
-Each field is described with its purpose and the type of data it holds. This documentation provides clarity on the role of each field within the `GoBuyEncryption` class, making it easier for developers to understand and work with the class.## Exception Handling
+Each field is described with its purpose and the type of data it holds. This documentation provides clarity on the role of each field within the `GoBuyEncryption` class, making it easier for developers to understand and work with the class.
+
+## Exception Handling
 
 The CMS Signer throws exceptions if there are issues with file signing. Make sure to handle these exceptions in your application.
 
@@ -311,3 +461,9 @@ For support, please open an issue in the GitHub repository.
 
 Main Contributors: [GoBuy.cheap](https://www.gobuy.cheap) and  [CodingDrips.eu](https://www.codingdrips.eu) 
 
+## Books for your information.
+____________
+You may proceed to get a cope [here](https://www.gobuy.cheap)
+____________
+![Cryptograph - PHP](crypt.png)
+![Integrated Web Dev.](web.png)
