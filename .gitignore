@@ -2,3 +2,10 @@
 composer.lock
 /src/index.php
 /gobuy_cypher
+/composer/gobuy_cipher
+/src/index.php
+/src/ChainOfTrust
+.gitignore
+/src/gobuy_cms_encryption.cms
+/src/data_cms_verified.txt
+/src/comp.zip

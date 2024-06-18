@@ -463,7 +463,7 @@ Main Contributors: [GoBuy.cheap](https://www.gobuy.cheap) and  [CodingDrips.eu](
 
 ## Books for your information.
 ____________
-You may proceed to get a cope [here](https://www.gobuy.cheap)
+You may proceed to get a cope [here](https://www.gobuy.cheap/integrated-web-and-mobile-development)
 ____________
 ![Cryptograph - PHP](crypt.png)
 ![Integrated Web Dev.](web.png)
