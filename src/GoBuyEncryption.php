@@ -8,7 +8,7 @@ use Monolog\Handler\StreamHandler;
 use PHPUnit\Framework\TestCase;
 
 
-trait ChainOfTrust 
+trait MyChainOfTrust 
 {
 
     // Configuration for the protected key
@@ -152,7 +152,7 @@ protected function folderExistsOrCreate( string $folderName ): void {
  */
 class GoBuyEncryption
 {
-    use ChainOfTrust {}
+    use MyChainOfTrust {}
     /**
      * @var string Path to the input file.
      */
