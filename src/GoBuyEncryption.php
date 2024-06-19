@@ -423,6 +423,24 @@ private $pkcs7SignatureOutput;
         // }
     }
 
+    public function init(  ): void {
+        $this->zip = new \ZipArchive();
+        // Load the OpenSSL module
+        if (!extension_loaded('openssl')) {
+            die('OpenSSL extension is not loaded.');
+        }
+
+
+        $this->folderExistsOrCreate( "./CA" );
+        $this->folderExistsOrCreate( "./log" );
+        $this->folderExistsOrCreate( __DIR__."/gobuy_cipher" );
+       
+
+        // Set up the logger
+        $this->log = new Logger('cms_signing');
+        $this->log->pushHandler(new StreamHandler( $this->errorLogPath, Logger::INFO));
+    }
+
     // Set log file path
     public function setLogFilePath ( string $errorLogPath )
     {
