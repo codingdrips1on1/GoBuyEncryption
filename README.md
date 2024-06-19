@@ -46,6 +46,14 @@ if (!extension_loaded('openssl')) {
 }
 
 ```
+For output dispalys and display of OpenSSL errors we have provided the below for your convinience:
+```php
+
+// Load the OpenSSL module
+$gobuy->output( "Some output message", "Title of the output" ); // Display errors if string or var_dumps if an array.
+$gobuy->showAnyError( ); // Displays all openssl_error_string()
+
+```
 
 #### To sign a file
 You must set the necessary paths to the files you wish to work with before signing, encrypting, decrypting, and verifying.
@@ -86,7 +94,7 @@ $gobuy->setHeader([
 
 
 ```
-Optional: in case you wish to set up a chain of trust. That is, to generate an intermediate certificate for the `$untrusted_certificates_filename`. This is typically done when you want to provide additional certificates that may be needed to complete the chain of trust during the verification process but are not inherently trusted by the system.
+We are securing you with chain of trust. So we generate an intermediate certificate for the `$untrusted_certificates_filename`. This is typically done to provide additional layer of security and also more certificates that will be needed to complete the verification process.
 ```php
 
 // 
@@ -271,7 +279,7 @@ if ($gobuy->pkcs7Decrypt($gobuy->getPKCS7EncryptedOutputFilename())) {
 }
 
 ```
-```
+
 ## Alternatively
 In the context of the class you're working with, the methods `generateRecipientCredentials()` and `generateSenderCredentials()` can be designed to simplify the process of generating credentials. When invoked, these methods can internally create a certificate and a private key for the recipient and sender, respectively. This feature is particularly useful if you prefer not to manually create and manage certificate files and private key files on the filesystem.
 
@@ -389,47 +397,178 @@ Here's an explanation of the fields in the `GoBuyEncryption` class:
 
 # GoBuyEncryption Class Fields
 
-## Private Fields
 
-- `inputFilename`: Path to the **input file** that contains the data to be encrypted or signed.
-- `cmsOutputFilename`: Path to the **output file** where the CMS signed data will be saved.
-- `senderCertPath`: Path to the **certificate file** for the sender.
-- `senderPrivateKeyPath`: Path to the **private key file** for the sender.
-- `extraCertsPath`: Path to **additional certificates** if needed for the CMS operation.
-- `privateKeyPassword`: Specifies the **password** for the sender's private key.
-- `header`: An associative array representing the **headers** for the CMS operation.
-- `cmsFlag`: A bitmask of flags for the **CMS signing** operation.
-- `encoding`: The **encoding type** for the CMS signing operation.
-- `untrusted_certificates_filename`: Filename of **additional untrusted certificates** for the CMS operation.
-- `log`: **Monolog logger** instance for logging messages.
-- `senderInnerGenCert`: Path to the **sender's certificate file** generated internally.
-- `recipientInnerGenCert`: Path to the **recipient's certificate file** generated internally.
-- `senderInnerGenKey`: Path to the **sender's private key file** generated internally.
-- `recipientInnerGenKey`: Path to the **recipient's private key file** generated internally.
-- `pkcs7Flag`: Flag for **PKCS7 operation mode**.
-- `pkcs7Algo`: Algorithm used for **PKCS7 encryption**.
-- `errorLogPath`: Path to the **error log file** for CMS signing.
-- `pkcs7EncryptedOutputFilename`: Filename for the **PKCS7 encrypted output**.
-- `pkcs7DecryptedOutputFilename`: Filename for the **PKCS7 decrypted output**.
-- `pkcs7SignedOutputFilename`: Filename for the **PKCS7 signed output**.
-- `senderRawCert`: Raw certificate data for the **sender**.
-- `recipientRawCert`: Raw certificate data for the **recipient**.
-- `senderPrivateKey`: Private key resource for the **sender**.
-- `cmsSigned`: Status of **CMS signing**, initially empty.
-- `pkcs7Signed`: Status of **PKCS7 signing**, initially empty.
-- `senderCertificate`: Certificate data for the **sender**.
-- `recipientPrivateKey`: Private key resource for the **recipient**.
-- `cmsEncryptedOutPut`: Output for **CMS encrypted data**.
-- `recipientCertificate`: Certificate data for the **recipient**.
-- `recipientCertPath`: Path to the **recipient's certificate file**.
-- `pkcs7EncryptedOutput`: Output for **PKCS7 encrypted data**.
-- `decryptedData`: **Decrypted data** after processing.
-- `decryptionOutput`: Output filename for **decrypted data**.
+- `protected $inputFilename = null;`
+  - **Type**: `null`
+  - **Description**: Initially unset, this variable is intended to hold the path to the input file.
 
-## Public Fields
+- `protected $cmsOutputFilename = 'gobuy_signed_data_6.cms';`
+  - **Type**: `string`
+  - **Description**: Path to the output file containing signed data.
 
-- `decryptedOutput`: Publicly accessible property for **decrypted output**.
-- `pkcs7VerifiedOutput`: Output for **PKCS7 verified data**.
+- `protected $extraCertsPath = 'path/to/extra_certs.pem';`
+  - **Type**: `string`
+  - **Description**: Path to additional certificates if required.
+
+- `protected $privateKeyPassword = '12345';`
+  - **Type**: `string`
+  - **Description**: Specifies the password for accessing the private key.
+
+- `protected $header = [];`
+  - **Type**: `array`
+  - **Description**: An associative array representing the headers for the CMS operation.
+
+- `protected $cmsFlag = OPENSSL_CMS_BINARY;`
+  - **Type**: `int`
+  - **Description**: A bitmask of flags for the CMS signing operation.
+
+- `protected $cmsEncoding = OPENSSL_ENCODING_SMIME;`
+  - **Type**: `int`
+  - **Description**: The encoding type for the CMS signing operation.
+
+- `protected $untrusted_certificates_filename = null;`
+  - **Type**: `string|null`
+  - **Description**: The filename of additional untrusted certificates for the CMS operation.
+
+- `protected $log;`
+  - **Type**: `Logger`
+  - **Description**: Monolog logger instance for logging messages.
+
+- `protected $senderInnerGenCert = 'gobuy_cipher/sender_certificate.pem';`
+  - **Type**: `string`
+  - **Description**: Path to the sender's certificate file.
+
+- `protected $recipientInnerGenCert = 'gobuy_cipher/reciever_certificate.pem';`
+  - **Type**: `string`
+  - **Description**: Path to the recipient's certificate file.
+
+- `protected $senderInnerGenKey = 'gobuy_cipher/sender_private_key.pem';`
+  - **Type**: `string`
+  - **Description**: Path to the sender's protected key file.
+
+- `protected $recipientInnerGenKey = 'gobuy_cipher/reciever_private_key.pem';`
+  - **Type**: `string`
+  - **Description**: Path to the recipient's protected key file.
+
+- `protected $pkcs7Flag = PKCS7_BINARY;`
+  - **Type**: `int`
+  - **Description**: Flag for PKCS7 operation mode.
+
+- `protected $pkcs7Algo = OPENSSL_CIPHER_AES_256_CBC;`
+  - **Type**: `string`
+  - **Description**: Algorithm used for PKCS7 encryption.
+
+- `protected $errorLogPath = './log/cms_signing.log';`
+  - **Type**: `string`
+  - **Description**: Path to the error log file for CMS signing.
+
+- `protected $pkcs7EncryptedOutputFilename;`
+  - **Type**: `string`
+  - **Description**: Filename for the PKCS7 encrypted output.
+
+- `protected $pkcs7DecryptedOutputFilename;`
+  - **Type**: `string`
+  - **Description**: Filename for the PKCS7 decrypted output.
+
+- `protected $pkcs7SignedOutputFilename;`
+  - **Type**: `string`
+  - **Description**: Filename for the PKCS7 signed output.
+
+- `protected $senderRawCert;`
+  - **Type**: `string`
+  - **Description**: Raw certificate data for the sender.
+
+- `protected $recipientRawCert;`
+  - **Type**: `string`
+  - **Description**: Raw certificate data for the recipient.
+
+- `protected $senderPrivateKey;`
+  - **Type**: `resource`
+  - **Description**: Protected key resource for the sender.
+
+- `protected $cmsSigned = "Empty";`
+  - **Type**: `string`
+  - **Description**: Status of CMS signing, initially empty.
+
+- `protected $pkcs7Signed = "Empty";`
+  - **Type**: `string`
+  - **Description**: Status of PKCS7 signing, initially empty.
+
+- `protected $senderCertificate;`
+  - **Type**: `string`
+  - **Description**: Certificate data for the sender.
+
+- `protected $recipientPrivateKey;`
+  - **Type**: `resource`
+  - **Description**: Protected key resource for the recipient.
+
+- `protected $cmsEncryptedOutPut;`
+  - **Type**: `string`
+  - **Description**: Output for CMS encrypted data.
+
+- `protected $recipientCertificate;`
+  - **Type**: `string`
+  - **Description**: Certificate data for the recipient.
+
+- `protected $recipientCertPath = "./gobuy_cipher/recipient_cert.pem";`
+  - **Type**: `string`
+  - **Description**: Path to the recipient's certificate file.
+
+- `protected $pkcs7EncryptedOutput;`
+  - **Type**: `string`
+  - **Description**: Output for PKCS7 encrypted data.
+
+- `protected $decryptedData;`
+  - **Type**: `string`
+  - **Description**: Decrypted data after processing.
+
+- `protected $decryptionOutput;`
+  - **Type**: `string`
+  - **Description**: Output filename for decrypted data.
+
+- `public $decryptedOutput;`
+  - **Type**: `string`
+  - **Description**: Publicly accessible property for decrypted output.
+
+- `protected $pkcs7RawDataOutput;`
+  - **Type**: `string`
+  - **Description**: Output for PKCS7 verified data.
+
+- `private $intermediatePrivateKey;`
+  - **Type**: `string`
+  - **Description**: Holds the private key of the intermediate certificate authority (CA).
+
+- `private $caCert;`
+  - **Type**: `string`
+  - **Description**: Contains the certificate of the certificate authority (CA).
+
+- `protected $generateRecipientCredentials = false;`
+  - **Type**: `bool`
+  - **Description**: Indicates whether to generate credentials for the recipient.
+
+- `protected $generateSenderCredentials = false;`
+  - **Type**: `bool`
+  - **Description**: Indicates whether to generate credentials for the sender.
+
+- `protected $cmsCipherAlgo = OPENSSL_CIPHER_AES_128_CBC;`
+  - **Type**: `int`
+  - **Description**: Specifies the cipher algorithm to be used for CMS.
+
+- `protected $pkcs7Encoding;`
+  - **Type**: `mixed`
+  - **Description**: Defines the encoding for PKCS#7 data structures.
+
+- `protected $senderPrivateKeyPath;`
+  - **Type**: `string`
+  - **Description**: Path to the private key file of the sender.
+
+- `private $recipientTempCert;`
+  - **Type**: `string`
+  - **Description**: Temporary certificate for the recipient.
+
+- `private $pkcs7SignatureOutput;`
+  - **Type**: `string`
+  - **Description**: Stores the output of the PKCS#7 signature process.
 
 
 Each field is described with its purpose and the type of data it holds. This documentation provides clarity on the role of each field within the `GoBuyEncryption` class, making it easier for developers to understand and work with the class.
