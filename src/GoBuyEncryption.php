@@ -430,6 +430,11 @@ private $pkcs7SignatureOutput;
     {
         return $this->root;
     }
+    public function create( string $folderName )
+    {
+        $this->folderExistsOrCreate( $this->root."app/".$folderName );
+    }
+    
     public function init(  ): void {
         $this->zip = new \ZipArchive();
         // Load the OpenSSL module
@@ -442,7 +447,7 @@ private $pkcs7SignatureOutput;
 
         $this->folderExistsOrCreate( $this->root."app/CA" );
         $this->folderExistsOrCreate( $this->root."app/log" );
-        $this->folderExistsOrCreate( $this->root."app/gobuy_cipher" );
+        // $this->folderExistsOrCreate( $this->root."app/gobuy_cipher" );
        
 
         // Set up the logger
