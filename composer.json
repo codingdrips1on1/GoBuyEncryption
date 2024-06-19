@@ -13,5 +13,11 @@
             "name": "Tech Team",
             "email": "dev@codingdrips.eu"
         }
-    ]
+    ], 
+    "require": {
+        "monolog/monolog": "^3.6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.1"
+    }
 }
