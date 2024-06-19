@@ -406,7 +406,9 @@ private $pkcs7SignatureOutput;
             die('OpenSSL extension is not loaded.');
         }
 
-
+        $this->root = explode( "vendor", dirname( __FILE__ ) );
+        $this->root = $this->root[0];
+        
         $this->folderExistsOrCreate( $this->root."app/CA" );
         $this->folderExistsOrCreate( $this->root."app/log" );
        
@@ -415,8 +417,7 @@ private $pkcs7SignatureOutput;
         $this->log = new Logger('cms_signing');
         $this->log->pushHandler(new StreamHandler( $this->errorLogPath, Logger::INFO));
 
-        $this->root = explode( "vendor", dirname( __FILE__ ) );
-        $this->root = $this->root[0];
+        
         // Security: Protect sensitive information
         // if (!file_exists($this->senderPrivateKeyPath)) {
         //     $this->log->error('protected key file not found.');
@@ -433,26 +434,7 @@ private $pkcs7SignatureOutput;
     {
         $this->folderExistsOrCreate( $this->root."app/".$folderName );
     }
-    
-    public function init(  ): void {
-        $this->zip = new \ZipArchive();
-        // Load the OpenSSL module
-        if (!extension_loaded('openssl')) {
-            die('OpenSSL extension is not loaded.');
-        }
 
-        $this->root = explode( "vendor", dirname( __FILE__ ) );
-        $this->root = $this->root[0];
-
-        $this->folderExistsOrCreate( $this->root."app/CA" );
-        $this->folderExistsOrCreate( $this->root."app/log" );
-        // $this->folderExistsOrCreate( $this->root."app/gobuy_cipher" );
-       
-
-        // Set up the logger
-        $this->log = new Logger('cms_signing');
-        $this->log->pushHandler(new StreamHandler( $this->errorLogPath, Logger::INFO));
-    }
 
     // Set log file path
     public function setLogFilePath ( string $errorLogPath )
