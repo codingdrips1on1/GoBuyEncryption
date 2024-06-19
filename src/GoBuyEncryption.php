@@ -86,7 +86,8 @@ public function compressData ( string $zipFilePath ): GoBuyEncryption {
         fwrite(fopen( $zipFilePath, "wb" ), "" );
         // $this->zip->addFile($zipFilePath, 'new/crs');
     }
-    if ($this->zip->open($zipFilePath, ZipArchive::CREATE) === TRUE) {
+    if ($this->zip->open($zipFilePath, \ZipArchive::CREATE) === TRUE) {
+        
         // $zip->addFromString('info.txt', 'File content goes here');
         // $this->zip->addFile($zipFilePath, 'new/csr');
         // $zip->close();
@@ -895,7 +896,7 @@ private $pkcs7SignatureOutput;
         // Check if the file was signed successfully
         if (!$isSigned) {
             $this->log->error('Failed to sign the file.');
-            throw new Exception('Failed to sign the file.');
+            throw new \Exception('Failed to sign the file.');
         }
 
         $this->cmsSigned = file_get_contents( $this->cmsOutputFilename );
@@ -977,7 +978,7 @@ private $pkcs7SignatureOutput;
 
                 return true;
 
-        } catch ( Exception $e ) {
+        } catch ( \Exception $e ) {
 
             echo "Exc: " . $e->getMessage();
 
@@ -1194,7 +1195,7 @@ private $pkcs7SignatureOutput;
             $pKey
         )) {
             $this->showAnyError();
-            throw new Exception('Unable to decrypt the data. ' . openssl_error_string() );
+            throw new \Exception('Unable to decrypt the data. ' . openssl_error_string() );
         }
 
         $this->decryptedOutput = file_get_contents( $this->pkcs7DecryptedOutputFilename );
@@ -1323,7 +1324,7 @@ private function generateCACertAndPrivateKey (  ): array {
 
 public function signEndEntityCert( string $endEntityCSRPath,
                              string $intermediateCertPath, 
-                             OpenSSLAsymmetricKey | string $intermediateKeys,
+                             \OpenSSLAsymmetricKey $intermediateKeys,
                              int $days = 365, $serial = 123 ): array {
 
                     //  $serial = rand(); // Serial number should be unique and random
@@ -1366,7 +1367,7 @@ public function signEndEntityCert( string $endEntityCSRPath,
 
 try {
     $gobuy = new GoBuyEncryption();
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo('Error: ' . $e->getMessage());
-    throw new Exception('Error: ' . $e->getMessage());
+    throw new \Exception('Error: ' . $e->getMessage());
 }
