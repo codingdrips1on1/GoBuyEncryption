@@ -314,7 +314,7 @@ class GoBuyEncryption
     /**
      * @var string Output filename for decrypted data.
      */
-    protected $decryptionOutput;
+    // protected $decryptedData;
 
     /**
      * @var string Publicly accessible property for decrypted output.
@@ -569,9 +569,7 @@ private $pkcs7SignatureOutput;
     public function getPKCS7EncryptedOutput () {
         return $this->pkcs7EncryptedOutput;
     }
-    public function setDecryptionOutput ( string $decryptionOutput ) {
-        $this->decryptionOutput = $decryptionOutput;
-    }
+   
 
     // Set the data that has been decrypted.
     public function setDecryptedData ( string $decryptedData ) {
@@ -1013,15 +1011,15 @@ private $pkcs7SignatureOutput;
         )
         {
             $pKey = $this->recipientPrivateKey;
-            $this->output( $pKey, "KEY!" );
+            // $this->output( $pKey, "KEY!" );
         } else {
             $pKey = openssl_pkey_get_private( file_get_contents($this->recipientPrivateKey),
                                                 $this->privateKeyPassword );
         }
 
-        $this->output( "pKey: ". $this->senderCertificate
-                            . "   --- cert: " . $this->recipientCertificate );
-        if (!openssl_pkcs7_decrypt($data, $this->decryptionOutput, 
+        // $this->output( "pKey: ". $this->senderCertificate
+        //                     . "   --- cert: " . $this->recipientCertificate );
+        if (!openssl_pkcs7_decrypt($data, $this->decryptedData, 
                                                             $cert,
                                                             $pKey ))
         {
@@ -1030,7 +1028,7 @@ private $pkcs7SignatureOutput;
         }
 
 
-        $this->decryptedData = file_get_contents( $this->decryptionOutput );
+        $this->decryptedData = file_get_contents( $this->decryptedData );
         return $this->decryptedData;
         
 
