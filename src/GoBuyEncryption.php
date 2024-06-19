@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 trait MyChainOfTrust 
 {
 
-    public $zip = new Zip();
     // Configuration for the protected key
 protected $configArgs = [
     "digest_alg" => "sha512",
