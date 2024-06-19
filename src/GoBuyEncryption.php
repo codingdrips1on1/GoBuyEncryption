@@ -1247,10 +1247,18 @@ public function generateIntermediateCertificate($csr, $rootCert, $daysValid = 36
                                  $daysValid, $this->config, $serial );
 
                     openssl_x509_export($intermediateCert, $intermediateCertOut);
-                    file_put_contents( "./gobuy_cipher/inter_cert.pem", 
+                    file_put_contents( $this->getIntermediateCertPath(), 
                                                 $intermediateCertOut );
-                    return [$intermediateCertOut, "./gobuy_cipher/inter_cert.pem", $this->intermediatePrivateKey ];
+                    return [$intermediateCertOut, $this->getIntermediateCertPath(), $this->intermediatePrivateKey ];
                     
+}
+
+private $intermediateCertPath;
+public function setIntermediateCertPath ( string $intermediateCertPath ) {
+        $this->intermediateCertPath = $intermediateCertPath;
+}
+public function getIntermediateCertPath(  ) {
+    return $this->intermediateCertPath;
 }
 private function generateCACertAndPrivateKey (  ): array {
 

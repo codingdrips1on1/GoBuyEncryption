@@ -97,6 +97,9 @@ $gobuy->setHeader([
 We are securing you with chain of trust. So we generate an intermediate certificate for the `$untrusted_certificates_filename`. This is typically done to provide additional layer of security and also more certificates that will be needed to complete the verification process.
 ```php
 
+// Set the path where the intermediate output will be saved.
+$gobuy->setIntermediateCertPath( "./gobuy_cipher/inter_cert.pem" );
+
 // 
 list($intermediateCert, $intermediatCertPath, $intermediatePrivateKey ) = $gobuy->generateIntermediateCert( "../../alice_cred/private_key.pem" );
 
