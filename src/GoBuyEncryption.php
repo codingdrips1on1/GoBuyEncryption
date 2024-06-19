@@ -1,7 +1,8 @@
 <?php
 // Use Composer's autoload to load dependencies
-require '../../vendor/autoload.php';
+namespace GoBuy\Encryption;
 
+require '../../vendor/autoload.php';
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use PHPUnit\Framework\TestCase;
