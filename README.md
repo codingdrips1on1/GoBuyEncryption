@@ -46,12 +46,31 @@ if (!extension_loaded('openssl')) {
 }
 
 ```
+For Laravel users. You have to inject our object through one of your methods to be able to work with the class members as shown below. Or you could simple instantiate our class:
+```php
+
+public function index( Request $req, GoBuyEncryption $gobuy ) {
+
+      $gobuy->init(); // This method has to be called first if you choose this pattern. If you instantiate our class, you don't need to call this method
+
+}  
+
+```
 For output dispalys and display of OpenSSL errors we have provided the below for your convinience:
 ```php
 
 // Load the OpenSSL module
 $gobuy->output( "Some output message", "Title of the output" ); // Display errors if string or var_dumps if an array.
 $gobuy->showAnyError( ); // Displays all openssl_error_string()
+
+```
+For Laravel users, the root path `$this->getRoot()` stops in the direction where the laravel App folder and vendor are. Make sure the App folder and the vendor are in that same directory for this class method to serve properly. So that you can say:
+```php
+
+// Load the OpenSSL module
+$root = $gobuy->getRoot( ); // 
+$gobuy->create($root."app/CMS") // This helper helps you create new folders.
+$gobuy->setInputFilename($root."app/CMS/data.txt"); // You must have left "data.txt" in the folder "CMS".
 
 ```
 

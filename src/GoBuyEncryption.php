@@ -87,14 +87,13 @@ public function compressData ( string $zipFilePath ): GoBuyEncryption {
         // $this->zip->addFile($zipFilePath, 'new/crs');
     }
     if ($this->zip->open($zipFilePath, \ZipArchive::CREATE) === TRUE) {
-        
         // $zip->addFromString('info.txt', 'File content goes here');
         // $this->zip->addFile($zipFilePath, 'new/csr');
         // $zip->close();
         // echo 'ZIP archive created successfully.';
-        $this->output( "ZIP archive created successfully.", "Zipped!!" );
+        $this->log->info("ZIP archive created successfully.");
     } else {
-        $this->output( 'Failed to create ZIP archive.', "Zip Err!" ); 
+        $this->log->error('Failed to create ZIP archive.');
     }
 
         return $this;
@@ -408,9 +407,8 @@ private $pkcs7SignatureOutput;
         }
 
 
-        $this->folderExistsOrCreate( "./CA" );
-        $this->folderExistsOrCreate( "./log" );
-        $this->folderExistsOrCreate( __DIR__."/gobuy_cipher" );
+        $this->folderExistsOrCreate( $this->root."app/CA" );
+        $this->folderExistsOrCreate( $this->root."app/log" );
        
 
         // Set up the logger
@@ -876,7 +874,7 @@ private $pkcs7SignatureOutput;
      *
      * @throws Exception If signing fails or protected key is invalid.
      */
-    public function cmsSign( string $senderCert ): bool
+    public function cmsSign(  \OpenSSLCertificate | string $senderCert ): bool
     {
         list( $cert, $pKey ) = $this->processCreds(  );
         
@@ -934,7 +932,7 @@ private $pkcs7SignatureOutput;
                     $pKey = $this->senderPrivateKey;
                 } else {
                     // $this->output( "DWNNN" );
-                    $pKey = openssl_pkey_get_private( file_get_contents($this->recipientPrivateKey),
+                    $pKey = openssl_pkey_get_private( ($this->senderPrivateKey),
                     $this->privateKeyPassword );
                 }
 
