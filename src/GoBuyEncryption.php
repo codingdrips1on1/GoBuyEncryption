@@ -398,7 +398,7 @@ private $pkcs7SignatureOutput;
     public function __construct()
     {
 
-        $this->zip = new ZipArchive();
+        // $this->zip = new ZipArchive();
         // Load the OpenSSL module
         if (!extension_loaded('openssl')) {
             die('OpenSSL extension is not loaded.');
