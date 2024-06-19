@@ -85,16 +85,16 @@ You must set the necessary paths to the files you wish to work with before signi
 
 
 // Set the input filename for the data to be signed
-$gobuy->setInputFilename("../../CMS/data_5.txt");
+$gobuy->setInputFilename($root."app/CMS/data.txt");
 
 // Set the output filename where the CMS signed data will be saved
-$gobuy->setCMSOutputFilename("./gobuy_cypher/signed_data.cms");
+$gobuy->setCMSOutputFilename($root."app/path/to/CMS/signed_data.cms");
 
 // Set the path to the sender's certificate
-$gobuy->setSenderCertPath("../../alice/certificate.pem");
+$gobuy->setSenderCertPath($root."app/path/to/sender/certificate.pem");
 
 // Set the path to the sender's private key
-$gobuy->setSenderPrivateKey("../../alice/private_key.pem", "12345");
+$gobuy->setSenderPrivateKey($root."app/path/to/sender/private_key.pem", "12345");
 
 // Or
 // Set the password for the sender's private key, then call "setSenderPrivateKey" with only first argument.
@@ -117,15 +117,15 @@ We are securing you with chain of trust. So we generate an intermediate certific
 ```php
 
 // Set the path where the intermediate output will be saved.
-$gobuy->setIntermediateCertPath( "./gobuy_cipher/inter_cert.pem" );
+$gobuy->setIntermediateCertPath( $root."app/path/to/intermediate_cert.pem" ); // ".pem" or ".crt". ".crt".
 
 // 
-list($intermediateCert, $intermediatCertPath, $intermediatePrivateKey ) = $gobuy->generateIntermediateCert( "../../alice_cred/private_key.pem" );
+list($intermediateCert, $intermediatCertPath, $intermediatePrivateKey ) = $gobuy->generateIntermediateCert( $root."app/path/to/sender/private_key.pem" );
 
 // Now the end entity's certificate can be created. End entity is also the sender. The sender needs to submit a Certificate Signing Request (CSR) for a certificate to be issued to them.
 $days = 365; // How long the certificate will be valid. You can increase this further
 $serial = rand(); // Just any random number, for example.
-list( $endEntityCert ) = $gobuy->signEndEntityCert( "../../alice_cred/csr.pem", 
+list( $endEntityCert ) = $gobuy->signEndEntityCert( $root."app/path/to/sender/csr.pem", 
                                 $intermediatCertPath, $intermediatePrivateKey, 
                                   $days, $serial );
 
@@ -133,18 +133,8 @@ list( $endEntityCert ) = $gobuy->signEndEntityCert( "../../alice_cred/csr.pem",
 $gobuy->setUntrustedCertificatesFilename( $intermediateCertPath );
 
 ```
-Where `$intermediateCert` is the certificate content from file, and `$intermediateCertPath` is the path to the certificate content. `generateCSR` takes the path to the sender's private key. `setUntrustedCertificatesFilename` sets `$untrusted_certificates_filename`. Use carefully.
+Where `$intermediateCert` is the certificate content from file, and `$intermediateCertPath` is the path to the certificate content. `generateCSR` takes the path to the sender's private key. `setUntrustedCertificatesFilename` sets `$untrusted_certificates_filename`. `$endEntityCert` is same as the `$senderCert`.
 
-The above chain of trust can be skipped, where the user goes straight to the signing stage as shown below:
-
-```php
-
-// Sign the data using CMS. You should see output in the specified path.
-$gobuy->setUntrustedCertificatesFilename( $intermediatCertPath );
-$gobuy->setSenderPrivateKey( "../../alice_cred/private_key.pem", "12345"); // Password protected
-$gobuy->cmsSign( $endEntityCert );
-
-```
 
 #### To encrypt a file
 
@@ -156,14 +146,14 @@ if ( $gobuy->cmsSign( $endEntityCert ) ) {
 
     // Preparing for encryption
     // Set the output filename where the CMS. encrypted data will be saved
-    $gobuy->setCMSEncryptedOutput( "./gobuy_cypher/encrypted_data.cms" );
+    $gobuy->setCMSEncryptedOutput( $root."app/path/to/encrypted_data.cms" );
     // Set the path to recipient's certificate.
-    $gobuy->setRecipientCertPath( "../../bob_cred/certificate.pem" );
+    $gobuy->setRecipientCertPath( $root."app/path/to/recievers/certificate.pem" );
     // Set the path to the recipient's private key.
-    $gobuy->setRecipientPrivateKey( "../../bob_cred/private_key.pem", "12345" ); // Password-protected
+    $gobuy->setRecipientPrivateKey( $root."app/path/to/recievers/private_key.pem", "12345" ); // Password-protected
     
     // Encrypt the signed data using CMS. 
-    $gobuy->cmsEncrypt("path/to/signed_data.cms");
+    $gobuy->cmsEncrypt($root."path/to/signed_data.cms"); 
 
 } else {
     throw new \Exception( "Signing failed: " . openssl_error_string() );
@@ -188,7 +178,7 @@ You may now proceed as follows:
 // Begin the compression process and create a new ZIP file named "comp.zip".
 $gobuy->compressData("encryption.zip")
     // Attach an image file "dog.jpg" from the "pic" directory to the ZIP archive.
-    ->thenAttach("encryption.zip", "encrypted/encrypted_data.cms")
+    ->thenAttach("encryption.zip", $root."app/encrypted/encrypted_data.cms")
     // Finalize the ZIP archive and close it.
     ->thenAfterCloseZip();
 
@@ -198,13 +188,13 @@ $gobuy->compressData("encryption.zip")
 ```php
 // This is the reciever's end, who will now decrypt the file.
 // Continuation from above. Ensure to have called all relevant setters here.
-if (  $gobuy->cmsEncrypt("path/to/signed_data.cms") ) {
+if (  $gobuy->cmsEncrypt($root."app/path/to/signed_data.cms") ) {
 
     // Set the output filename where the decrypted data will be saved
-    $gobuy->setDecryptionOutput("./gobuy_cypher/decrypted_data.cms");
+    $gobuy->setDecryptedData($root."app/path/to/decrypted_data.cms");
 
     // Decrypt the CMS encrypted data
-    $gobuy->cmsDecrypt("./gobuy_cypher/encrypted_data.cms");
+    $gobuy->cmsDecrypt($root."app/path/to/encrypted_data.cms");
 
 } else {
     throw new Exception ( "Something went wrong" );
@@ -215,9 +205,9 @@ if (  $gobuy->cmsEncrypt("path/to/signed_data.cms") ) {
 ```php
 
 // Verify the CMS decrypted data. 
-if ($gobuy->cmsVerify ( "./gobuy_cypher/decrypted_data.cms", 
-                                "./gobuy_cypher/cms_content_data.pem", 
-                                "./gobuy_cipher/cms_signature_data.pem" ))
+if ($gobuy->cmsVerify ( $gobuy->getDecryptedData(), 
+                                $root."app/path/to/cms_content_data.pem", // Where the original message will be stored after it is detached from the signature.
+                                $root."app/path/to/cms_signature_data.pem" )) // Where the signature is stored after it is ditached from the original message.
                         {
                             $gobuy->output( "CMS VERIfied", "Verified!!" );
                         } else {
