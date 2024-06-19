@@ -1,5 +1,6 @@
 <?php
 // Use Composer's autoload to load dependencies
+
 namespace GoBuy\Encryption;
 
 require '../../vendor/autoload.php';
@@ -8,9 +9,11 @@ use Monolog\Handler\StreamHandler;
 use PHPUnit\Framework\TestCase;
 
 
+
 trait MyChainOfTrust 
 {
 
+    public $zip = new Zip();
     // Configuration for the protected key
 protected $configArgs = [
     "digest_alg" => "sha512",
@@ -398,7 +401,7 @@ private $pkcs7SignatureOutput;
     public function __construct()
     {
 
-        // $this->zip = new ZipArchive();
+        $this->zip = new \ZipArchive();
         // Load the OpenSSL module
         if (!extension_loaded('openssl')) {
             die('OpenSSL extension is not loaded.');
