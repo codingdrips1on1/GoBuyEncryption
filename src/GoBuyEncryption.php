@@ -185,6 +185,11 @@ class GoBuyEncryption
      */
     protected $cmsFlag = OPENSSL_CMS_BINARY; // PKCS7_BINARY; // OPENSSL_CMS_BINARY; // OPENSSL_CMS_DETACHED | OPENSSL_CMS_BINARY
     
+    /**
+     * @var string A variable holding the decrypted file.
+     */
+    protected $decryptedDataRaw;
+
 
     /**
      * @var int The encoding type for the CMS signing operation.
@@ -200,6 +205,8 @@ class GoBuyEncryption
      * @var Logger Monolog logger for logging messages.
      */
     protected $log;
+
+    protected $cmsEncrypted;
     
      /**
      * @var string Path to the sender's certificate file.
@@ -209,7 +216,7 @@ class GoBuyEncryption
     /**
      * @var string Path to the recipient's certificate file.
      */
-    protected $recipientInnerGenCert = 'gobuy_cipher/reciever_certificate.pem';
+    protected $recipientInnerGenCert = 'gobuy_cipher/receiver_certificate.pem';
 
     /**
      * @var string Path to the sender's protected key file.
@@ -219,7 +226,7 @@ class GoBuyEncryption
     /**
      * @var string Path to the recipient's protected key file.
      */
-    protected $recipientInnerGenKey = 'gobuy_cipher/reciever_private_key.pem';
+    protected $recipientInnerGenKey = 'gobuy_cipher/receiver_private_key.pem';
 
     /**
      * @var int Flag for PKCS7 operation mode.
@@ -345,7 +352,7 @@ private $caCert;
 /**
  * @var bool $generateRecipientCredentials
  * Indicates whether to generate credentials for the recipient.
- * When set to true, it means the reciever's credentials were generated internally with external file.
+ * When set to true, it means the receiver's credentials were generated internally with external file.
  * 
  */
 protected $generateRecipientCredentials = false;
@@ -393,6 +400,13 @@ private $recipientTempCert;
 private $pkcs7SignatureOutput;
 
 
+protected $detachedData;
+protected $detachedSignature;
+
+
+public $caInfo = [ "CA/ca.crt" ];
+public $decryptedDataOutput;
+
 
     /**
      * CMSSigner constructor.
@@ -408,7 +422,7 @@ private $pkcs7SignatureOutput;
 
         $this->root = explode( "vendor", dirname( __FILE__ ) );
         $this->root = $this->root[0];
-        
+
         $this->folderExistsOrCreate( $this->root."app/CA" );
         $this->folderExistsOrCreate( $this->root."app/log" );
        
@@ -423,6 +437,7 @@ private $pkcs7SignatureOutput;
         //     $this->log->error('protected key file not found.');
         //     throw new Exception('protected key file not found.');
         // }
+
     }
 
     private $root;
@@ -442,6 +457,12 @@ private $pkcs7SignatureOutput;
             $this->errorLogPath = $errorLogPath;
     }
 
+      // Getter for inputFilename
+      public function getCMSEncrypted()
+      {
+          return $this->cmsEncrypted;
+      }
+  
       // Getter for inputFilename
       public function getInputFilename()
       {
@@ -471,7 +492,17 @@ private $pkcs7SignatureOutput;
       {
           return $this->pkcs7DecryptedOutputFilename;
       }
-  
+
+      // Get the main message after signature is detached
+      public function getDetachedData ( ) {
+            return $this->detachedData;
+    }
+
+    // Get the signature after the main message is detached from signature.
+    public function getDetachedSignature ( ) {
+            return $this->detachedSignature;
+    }
+    
       // Setter for cmsOutputFilename
       public function setPKCS7DecryptedOutputFilename( string $pkcs7DecryptedOutputFilename )
       {
@@ -551,7 +582,12 @@ private $pkcs7SignatureOutput;
     public function getPKCS7EncryptedOutput () {
         return $this->pkcs7EncryptedOutput;
     }
-   
+
+    // Get the decrypted data;
+    public function getDecryptedDataRaw ( ) 
+    {
+        return $this->decryptedDataRaw;
+    } 
 
     // Set the data that has been decrypted.
     public function setDecryptedData ( string $decryptedData ) {
@@ -631,6 +667,16 @@ private $pkcs7SignatureOutput;
       {
           $this->privateKeyPassword = $privateKeyPassword;
           
+      }
+  
+      
+      public function getCMSSigned()
+      {
+          return $this->cmsSigned;
+      }
+      public function getPKCS7Signed()
+      {
+          return $this->pkcs7Signed;
       }
   
       // Getter for header
@@ -954,6 +1000,8 @@ private $pkcs7SignatureOutput;
                         $this->output( openssl_error_string(), "CMS_ENCRYPTION_ERR" );
                     }
 
+                $this->cmsEncrypted = file_get_contents( $this->cmsEncryptedOutPut );
+
                 return true;
 
         } catch ( \Exception $e ) {
@@ -995,7 +1043,7 @@ private $pkcs7SignatureOutput;
             $pKey = $this->recipientPrivateKey;
             // $this->output( $pKey, "KEY!" );
         } else {
-            $pKey = openssl_pkey_get_private( file_get_contents($this->recipientPrivateKey),
+            $pKey = openssl_pkey_get_private( ($this->recipientPrivateKey),
                                                 $this->privateKeyPassword );
         }
 
@@ -1010,12 +1058,14 @@ private $pkcs7SignatureOutput;
         }
 
 
-        $this->decryptedData = file_get_contents( $this->decryptedData );
+      
+        $this->decryptedDataRaw = file_get_contents( $this->decryptedData );
         return $this->decryptedData;
         
 
     }
 
+    
   
 
     public function cmsVerify( string $decryptedData, string $output,
@@ -1035,15 +1085,13 @@ private $pkcs7SignatureOutput;
 
         try {
 
-           echo "RECCC: ".$this->recipientCertificate;
-
-
+        //    echo "RECCC: ".$this->recipientCertificate;
            openssl_cms_verify (
-                        $decryptedData, 
+                        $this->decryptedDataOutput, 
                         0, 
                         // PKCS7_NOVERIFY, 
                         $this->endEntityCertPath,
-                        [ "CA/ca.crt" ], 
+                        $this->caInfo, 
                         $this->untrusted_certificates_filename,
                         $output,
                         $pk7, 
@@ -1051,18 +1099,17 @@ private $pkcs7SignatureOutput;
                         $this->cmsEncoding
                     );
 
+                    $this->detachedData = $output;
+                    $this->detachedSignature = $sigfile;
+
                     return true;
             } catch ( \Exception $e ) { 
                     echo "Error: " . $e->getMessage();
             }
 
-         
-
             return false;
 
     }
-
-
 
 
      /**

@@ -143,6 +143,7 @@ Where `$intermediateCert` is the certificate content from file, and `$intermedia
 // Here you must have invoke the setters like above
 if ( $gobuy->cmsSign( $endEntityCert ) ) {
     // This scope means a digital signature was established successfully.
+    $gobuy->getCMSSigned(); // Get signed certificate data;
 
     // Preparing for encryption
     // Set the output filename where the CMS. encrypted data will be saved
@@ -154,6 +155,7 @@ if ( $gobuy->cmsSign( $endEntityCert ) ) {
     
     // Encrypt the signed data using CMS. 
     $gobuy->cmsEncrypt($root."path/to/signed_data.cms"); 
+      $gobuy->getCMSEncrypted(); // Get the encrypted data
 
 } else {
     throw new \Exception( "Signing failed: " . openssl_error_string() );
@@ -195,6 +197,7 @@ if (  $gobuy->cmsEncrypt($root."app/path/to/signed_data.cms") ) {
 
     // Decrypt the CMS encrypted data
     $gobuy->cmsDecrypt($root."app/path/to/encrypted_data.cms");
+    $gobuy->getDecryptedDataRaw(); // Get the decrypted data.
 
 } else {
     throw new Exception ( "Something went wrong" );
@@ -203,6 +206,9 @@ if (  $gobuy->cmsEncrypt($root."app/path/to/signed_data.cms") ) {
 ```
 
 ```php
+
+  // Here is where the CA certificate is added to the caInfo array.
+  $gobuy->caInfo = [ $root."app/path/to/ca.crt" ];
 
 // Verify the CMS decrypted data. 
 if ($gobuy->cmsVerify ( $gobuy->getDecryptedData(), 
