@@ -163,11 +163,44 @@ if ( $gobuy->cmsSign( $endEntityCert ) ) {
 
 
 ```
+#### Padding
+We will effortlessly pad your encrypted data. This stage is well recommended to give the encryped data more complex structure and randomness. This is to make the encrypted more resistant to brute force attack, and other attacks that exploit the simplicity of cryptographic cipher texts. 
+```php
+ $gobuy->paddCMSEncrypted(); // Pad the encrypted data before sending (recommended)
+```
+```php
+// Blade 
+  @php
+      $gobuy->unPadCMSEncrypted(); // unpad the padded encrypted data before the decryption stage.
+ @endphp
+```
+
+### Cascading
+We cascade encryption stages to strengthen your digital footprints, and secure your digigtal presence. This also makes it very hard for the man-in-the-middle or any other cryptoanalyst to figure out the key with brute force. If you desire more layers of encryption on the already existing encryption (which we recommend) then simply call the method `hardden(...)`.
+```php
+      $harddened = $gobuy->harden( $encryptedData, $aVeryStrongPassPhrase );
+```
+On the receiving side just easily call the method `unhardden()` to return back to working with `$encrypted`data.
+```php
+  //Blade
+    @php
+      $encryptedData = $gobuy->unharden( $harddened );
+    @endphp
+```
+After hashing a password, simply call this method to help disfigure the password more, making it harder to detect.
+```php
+  $disfiguredPass = $gobuy->disfigurePass( $password );
+```
+Call the below method to reverse this.
+```php
+  $gobuy->passRebuild( $disfiguredPass );
+```
+
 It is recommended to compress the file before it takes flight. This will reduce the file size and prevent any latency due to file being too large. If you believe you are working with a small file, you may want to skip this stage of encryption. Below shows how we can effortlessly compress your file after encryption.
 ```php
 // Begin the compression process and create a new ZIP file named "comp.zip".
 $gobuy->compressData("comp.zip")
-    ->thenAddFileFromString("index.php", "<?php echo 'Hello, world!' ") // Add a file from a string with the name "index.php" containing a simple PHP echo statement.
+    ->thenAddFileFromString("index.txt", "echo 'Hello, world!' ") // Add a file from a string with the name "index.php" containing a simple PHP echo statement.
     ->thenAttach("comp.zip", "pic/dog.jpg")// Attach an image file "dog.jpg" from the "pic" directory to the ZIP archive.
     ->thenAttach("comp.zip", "pic/car.png") // Attach another image file "car.png" from the "pic" directory to the ZIP archive.
     ->thenAttach("comp.zip", "docs/doc.pdf") // Attach a PDF document "doc.pdf" from the "docs" directory to the ZIP archive.
@@ -204,23 +237,41 @@ if (  $gobuy->cmsEncrypt($root."app/path/to/signed_data.cms") ) {
 }
 
 ```
-
+For Laravel users, the client side may look something like below. Now remember that in most cases, it is the client who is the sender. Where the server receives and decrypts, authenticates the user and so on.
 ```php
 
-  // Here is where the CA certificate is added to the caInfo array.
-  $gobuy->caInfo = [ $root."app/path/to/ca.crt" ];
+<body class="antialiased">
+        @inject('gobuy', 'App\Services\GoBuy')
 
-// Verify the CMS decrypted data. 
-if ($gobuy->cmsVerify ( $gobuy->getDecryptedData(), 
-                                $root."app/path/to/cms_content_data.pem", // Where the original message will be stored after it is detached from the signature.
-                                $root."app/path/to/cms_signature_data.pem" )) // Where the signature is stored after it is ditached from the original message.
-                        {
-                            $gobuy->output( "CMS VERIfied", "Verified!!" );
-                        } else {
-                            $gobuy->output( "CMS Not VERIfied ". openssl_error_string(), "Not Verified!!" );
-                            $gobuy->showAnyError();
-                        }
+        <!-- {{ $gobuy->getCMSSignedData() }} -->
+        @php
+        
+            
+            $gobuy->setRecipientCertPath( $gobuy->getRoot()."app/bob_cred/certificate.crt" );
+            $gobuy->setRecipientPrivateKey( $gobuy->getRoot()."app/bob_cred/private_key.key", "12345" );
 
+            $gobuy->setDecryptedData( $gobuy->getRoot()."app/data/decrypted_data.cms" );
+            $gobuy->cmsDecrypt($gobuy->getRoot()."app/data/encrypted_data.cms");
+            //echo $gobuy->getDecryptedDataRaw(); // Get the decrypted data.
+
+            // Here is where the CA certificate is added to the caInfo array.
+            $gobuy->caInfo = [ $root."app/path/to/ca.crt" ];
+            if ($gobuy->cmsVerify ( $gobuy->getDecryptedData(), 
+                                $gobuy->getRoot()."app/data/cms_content_data.pem", // Where the original message will be stored after it is detached from the signature.
+                                $gobuy->getRoot()."app/data/cms_signature_data.pem" )) // Where the signature is stored after it is ditached from the original message.
+            {
+                $gobuy->output( "CMS VERIfied", "Verified!!" );
+            } else {
+                $gobuy->output( "CMS Not VERIfied ". openssl_error_string(), "Not Verified!!" );
+                $gobuy->showAnyError();
+            }
+
+        @endphp
+    </body>
+
+```
+
+```php
 
 // public function cmsVerify( string $decryptedData, string $output,
 //                                 string|null $sigfile = null,
@@ -232,8 +283,17 @@ if ($gobuy->cmsVerify ( $gobuy->getDecryptedData(),
 
 
 ```
-The second argument of `cmsVerify` shows the original content (the human-readable message) before signature was signed, that is after the signature is detached. The third argument is a file that holds the detached signature.
 
+The second argument of `cmsVerify` shows the original content (the human-readable message) before signature was signed, that is after the signature is detached. The third argument is a file that holds the detached signature.
+You could just push the encrypted data from through Laravel's view method as below:
+```php
+return view('welcome', [ "encrypted" => $gobuy->getCMSEncrypted() ]);
+```
+```php
+
+  //Blade
+  {{ $encrypted }}
+```
 ## Using PKCS7 System
 
 ```php
@@ -275,6 +335,10 @@ if ($gobuy->pkcs7Sign()) {
     }
 }
 
+```
+Same as above
+```php
+@php
 // Set the output filename where the PKCS7 decrypted data will be saved
 $gobuy->setPKCS7DecryptedOutputFilename("./path/to/pkcs7_decrypted_data.cms");
 
@@ -296,6 +360,7 @@ if ($gobuy->pkcs7Decrypt($gobuy->getPKCS7EncryptedOutputFilename())) {
     $gobuy->pkcs7Verify($gobuy->getPKCS7DecryptedOutputFilename());
 }
 
+@endphp
 ```
 
 ## Alternatively
@@ -307,10 +372,14 @@ Here's an example of how to invoke these methods:
       ...
 
     list( $recipientRawCert, $recipientPrivateKey ) = $gobuy->generateSenderCredentials( $config, $dn, $expiresIn  )
+           
     
+```
+In most cases, the receiver is the server that will decrypt and authenticate user data.
+```php
+  @php
     list( $recipientRawCert, $recipientPrivateKey ) = $gobuy->generateRecipientCredentials( $config, $dn, $expiresIn  )
-       
-    
+  @endphp
 ```
 ```php 
  //Where 
@@ -407,6 +476,57 @@ class GoBuyEncryption
 ```
 
 These methods are designed to be flexible, allowing you to specify different configurations and distinguished names for the sender and recipient. The `$config` array allows you to define the cryptographic parameters for the certificate and private key generation, while the `$dn` array contains the information that will be included in the subject field of the certificate. The `$expiresIn` parameter sets the validity period of the certificate in days. These methods abstract away the complexity of generating and managing cryptographic credentials, making it easier to implement secure communication in your application.
+
+## DiffieHellman
+In our encryption class, we firmly believe in incorporating the Diffie-Hellman authentication stage as a crucial step before decryption begins. This authentication process, which involves the server and the user, plays a vital role in ensuring the security and integrity of the encrypted communication. Here's why we consider it necessary:
+1. **Mutual Authentication**:
+The Diffie-Hellman authentication stage facilitates mutual authentication between the server and the user. By verifying each other's identities, both parties can establish trust and confidence before proceeding with the decryption process. This mutual authentication helps prevent unauthorized access and protects against man-in-the-middle attacks. Refer to our book on "Encryption" to learn more on this kind of attack, where we discussed it with the necessary examples.
+
+2. **Protection against Replay Attacks**:
+Including Diffie-Hellman authentication protects against replay attacks. With authentication in place, each communication session generates a unique session key that is used exclusively for that session. This prevents replay attacks, where an adversary intercepts and replays previously captured encrypted data, as the session key changes for each session.
+
+4. **Defense against Impersonation**:
+By incorporating the Diffie-Hellman authentication stage, we mitigate the risk of impersonation attacks. Through the authentication process, both the server and the user verify their respective identities, ensuring that the encryption and decryption operations take place between the intended parties. This protects against malicious individuals attempting to impersonate either the server or the user.
+
+```php
+
+<?php
+
+namespace App\Services;
+use GoBuy\Encryption\GoBuyEncryption;
+class GoBuy extends GoBuyEncryption{
+   
+    public function serverSharedSecret (  ): string {
+        $server =  $this->getDH();  // Calling constructor of DiffieHellman
+        $user =  $this->getDH();  
+        $serverSharedSecret = $server->computeSharedSecret($user->getPublicKey()); // Servers secrete.
+        return $serverSharedSecret;
+    }
+
+}
+
+```
+This should be reversed when authenticating a user's encrypted message. The user will then encrypt, and the server will authenticate and decrypt.
+
+#### In Laravel
+You could still consider our solution in a normal `index.php` script or other PHP frameworks. Then you will need your composer properly setup, and setting the path to your `autoload.php`.
+```php
+
+  @php
+
+            $serverSharedSecret = $gobuy->serverSharedSecret();
+            $server =  $gobuy->getDH();  
+            $user =  $gobuy->getDH();
+            $userSharedSecret = $user->computeSharedSecret($server->getPublicKey());
+
+            if ( $serverSharedSecret===$userSharedSecret )
+            {
+                // Do your decryption here
+            } else throw new \Exception( "Something went wrong: ". openssl_error_string() );
+
+  @endphp
+
+```
 
 ## All Class Properties 
 

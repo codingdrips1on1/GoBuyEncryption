@@ -7,6 +7,7 @@ require '../../vendor/autoload.php';
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use PHPUnit\Framework\TestCase;
+// use GoBuyPHPEncryption\Src\DiffieHellman;
 
 
 
@@ -141,6 +142,7 @@ public function signCSR($csr, $caCert, $caPrivateKey, $days, $configArgs = []) {
 }
 
 protected function folderExistsOrCreate( string $folderName ): void {
+            echo $folderName;
             if ( !is_dir( $folderName ) )
                 mkdir( $folderName );
 }
@@ -423,8 +425,8 @@ public $decryptedDataOutput;
         $this->root = explode( "vendor", dirname( __FILE__ ) );
         $this->root = $this->root[0];
 
-        $this->folderExistsOrCreate( $this->root."app/CA" );
-        $this->folderExistsOrCreate( $this->root."app/log" );
+        $this->folderExistsOrCreate( $this->root."/CA" );
+        $this->folderExistsOrCreate( $this->root."/log" );
        
 
         // Set up the logger
@@ -438,6 +440,11 @@ public $decryptedDataOutput;
         //     throw new Exception('protected key file not found.');
         // }
 
+    }
+
+    public function getDH()
+    {
+        return new DiffieHellman();
     }
 
     private $root;
@@ -462,7 +469,72 @@ public $decryptedDataOutput;
       {
           return $this->cmsEncrypted;
       }
+
+      public function paddCMSEncrypted( string $paddingString = "edeeff21cd" )
+      {
+            
+
+            if ( $paddingString === "") 
+            {
+                $paddingString = openssl_random_pseudo_bytes(16);
+            }
+
+            $this->isPadded = true;
+            return $this->cmsEncrypted = strrev( $this->cmsEncrypted )."(:)".$this->cmsEncrypted
+                                            ."(:)".substr( strrev( $this->cmsEncrypted ),
+                                            0, (int)gmp_strval(gmp_abs(strlen($this->cmsEncrypted)/2)) )."(:)".$paddingString;
+      }
+
+      public function harden( string $encrypted, string $strongPass ): string {
+            if ( $strongPass===null ) {
+                $strongPass = openssl_random_pseudo_bytes( 16 );
+            }
+
+            $iv = random_bytes(16);
+            $encrypted = openssl_encrypt( base64_encode($encrypted),"aes-256-cbc", $strongPass, OPENSSL_RAW_DATA, $iv );
+            $this->output( ($encrypted), "Enc" );
+            return (strrev($encrypted)). "°:°".$this->disfigurePass($strongPass)."°:°".$iv;
+      }
+      public function unHarden( string $harddened ) {
+        list( $encrypted, $strongPass, $iv ) = explode("°:°", $harddened );
+        $encrypted = strrev( ($encrypted) );
+        return base64_decode(openssl_decrypt( $encrypted, "aes-256-cbc", $this->passRebuild(  $strongPass ),
+                        OPENSSL_RAW_DATA,
+                                 $iv ));
+
+  }
+      
+    public function disfigurePass( string $pass ): string {
+          $pass1 = substr( $pass, 0, (int)(gmp_strval(gmp_abs( strlen($pass)/2 ) ) ) );
+          $pass2 = substr( $pass, (int)(gmp_strval(gmp_abs( strlen($pass1)/2 )) ));
+          $pass = strrev( $pass );
+          $pass .= ":#?/".strrev($pass1) ."/". strrev($pass2);
+          return $pass;
+    }
+
+    public function passRebuild( string $disfiguredPass ): string 
+    {
+        list( $pass, $pass1 ) = explode(":#?/", $disfiguredPass );
+        $pass = strrev( $pass );
+        return $pass;
+    }
+
+    
+      public function unPadCMSEncrypted( ) 
+      {
+          $padded = "";
+          if ( $this->isPadded ) {
+              $padded = $this->paddCMSEncrypted (); 
+              list( $gabage1, $encrypted, $gabage2, $paddingString ) = explode("(:)", $padded ); 
+              file_put_contents( $this->recipientCertificate, $encrypted );  
+              return $encrypted;     
+          } else {
+                $this->output( "Wrong method call. There was no padding to start with." );
+                $this->log->error("Wrong method call. There was no padding to start with. Online " . __LINE__);
+          }
+      }
   
+      public $isPadded = false;
       // Getter for inputFilename
       public function getInputFilename()
       {
@@ -670,11 +742,11 @@ public $decryptedDataOutput;
       }
   
       
-      public function getCMSSigned()
+      public function getCMSSignedData()
       {
           return $this->cmsSigned;
       }
-      public function getPKCS7Signed()
+      public function getPKCS7SignedData()
       {
           return $this->pkcs7Signed;
       }
@@ -1202,7 +1274,7 @@ public $decryptedDataOutput;
             // $this->output( "pkcs_key" );
             $pKey = $this->recipientPrivateKey;
         } else {
-            $pKey = openssl_pkey_get_private( file_get_contents($this->recipientPrivateKey),
+            $pKey = openssl_pkey_get_private( ($this->recipientPrivateKey),
                                 $this->privateKeyPassword );
         }
 
